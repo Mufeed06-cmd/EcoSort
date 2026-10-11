@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.venv/
+env/
+venv/
+ENV/
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node / React
+node_modules/
+frontend/dist/
+frontend/.env.local
+frontend/.env.*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# AWS & SAM
+.aws-sam/
+samconfig.toml
+
+# IDE & OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*~
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+.aws/
+credentials

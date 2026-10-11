@@ -1,0 +1,90 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  AI Waste Segregation Advisor
+  Serverless backend running Python AWS Lambda with Amazon Bedrock multimodal classification
+  and deterministic environmental disposal rules engine.
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Runtime: python3.12
+    Tracing: Active
+    Environment:
+      Variables:
+        AWS_REGION: !Ref AWS::Region
+        BEDROCK_MODEL_ID: !Ref BedrockModelId
+        MOCK_MODE: !Ref EnableMockMode
+
+Parameters:
+  BedrockModelId:
+    Type: String
+    Default: anthropic.claude-3-haiku-20240307-v1:0
+    Description: Amazon Bedrock foundation model ID (e.g. anthropic.claude-3-haiku-20240307-v1:0 or amazon.nova-lite-v1:0)
+
+  EnableMockMode:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Set to true to force deterministic mock responses without invoking Bedrock
+
+Resources:
+  WasteAdvisorApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+          - X-Api-Key
+          - X-Amz-Date
+          - X-Amz-Security-Token
+        AllowMethods:
+          - POST
+          - OPTIONS
+        MaxAge: 600
+
+  WasteAdvisorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../
+      Handler: backend.lambda_handler.lambda_handler
+      Policies:
+        # Least-privilege Bedrock invocation policy
+        - Statement:
+            - Sid: BedrockModelAccess
+              Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - bedrock:InvokeModelWithResponseStream
+                - bedrock:Converse
+              Resource:
+                - !Sub 'arn:aws:bedrock:${AWS::Region}::foundation-model/*'
+                - !Sub 'arn:aws:bedrock:*::foundation-model/${BedrockModelId}'
+      Events:
+        AnalyzePost:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref WasteAdvisorApi
+            Path: /analyze
+            Method: POST
+        AnalyzeOptions:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref WasteAdvisorApi
+            Path: /analyze
+            Method: OPTIONS
+
+Outputs:
+  ApiEndpoint:
+    Description: "HTTP API Gateway endpoint URL for POST /analyze"
+    Value: !Sub "https://${WasteAdvisorApi}.execute-api.${AWS::Region}.amazonaws.com/analyze"
+  FunctionArn:
+    Description: "Lambda Function ARN"
+    Value: !GetAtt WasteAdvisorFunction.Arn
+  FunctionIamRole:
+    Description: "Implicit IAM Role created for Lambda function"
+    Value: !GetAtt WasteAdvisorFunctionRole.Arn
